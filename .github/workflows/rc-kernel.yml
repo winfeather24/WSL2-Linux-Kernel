@@ -68,7 +68,7 @@ jobs:
           echo ""
           
           make CC=gcc-14 HOSTCC=gcc-14 LD=$(gcc-14 -print-prog-name=ld) KCONFIG_CONFIG=arch/x86/configs/config-wsl olddefconfig
-          make CC=gcc-14 HOSTCC=gcc-14 LD=$(gcc-14 -print-prog-name=ld) -j$(nproc)
+          make CC=gcc-14 HOSTCC=gcc-14 LD=$(gcc-14 -print-prog-name=ld) KCONFIG_CONFIG=arch/x86/configs/config-wsl -j$(nproc)
           
           echo ""
           echo "Build completed: $(date)"
