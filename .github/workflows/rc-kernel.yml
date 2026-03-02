@@ -1,4 +1,4 @@
-name: Mainline RC Kernel CI Build (Simple)
+name: Mainline RC Kernel CI Build
 
 on:
   workflow_dispatch:
@@ -67,16 +67,16 @@ jobs:
           echo "Config: config-wsl (Microsoft based)"
           echo ""
           
-          make CC=gcc-14 HOSTCC=gcc-14 LD=$(gcc-14 -print-prog-name=ld) KCONFIG_CONFIG=arch/x86/configs/config-wsl-simple olddefconfig
+          make CC=gcc-14 HOSTCC=gcc-14 LD=$(gcc-14 -print-prog-name=ld) KCONFIG_CONFIG=arch/x86/configs/config-wsl olddefconfig
           make CC=gcc-14 HOSTCC=gcc-14 LD=$(gcc-14 -print-prog-name=ld) -j$(nproc)
           
           echo ""
           echo "Build completed: $(date)"
-          cp arch/x86/boot/bzImage ../bzImage-x86_64-simple
+          cp arch/x86/boot/bzImage ../bzImage-x86_64
           
           echo ""
           echo "=== Kernel Size ==="
-          ls -lh ../bzImage-x86_64-simple
+          ls -lh ../bzImage-x86_64
 
       - name: Generate Kernel Modules
         run: |
@@ -85,39 +85,39 @@ jobs:
           make modules_install INSTALL_MOD_PATH=../modules_install
           
           KERNEL_VER=$(ls ../modules_install/lib/modules/ | head -1)
-          mv ../modules_install/lib/modules/$KERNEL_VER ../modules_install/lib/modules/$RC_VERSION-WSL2-SIMPLE+
-          echo "Modules installed: $RC_VERSION-WSL2-SIMPLE+"
+          mv ../modules_install/lib/modules/$KERNEL_VER ../modules_install/lib/modules/$RC_VERSION-WSL2+
+          echo "Modules installed: $RC_VERSION-WSL2+"
 
       - name: Generate VHDX Addon Package
         run: |
           RC_VERSION="${{ github.event.inputs.rc_version }}"
-          MODULE_VER="$RC_VERSION-WSL2-SIMPLE+"
+          MODULE_VER="$RC_VERSION-WSL2+"
           
           echo "Generating VHDX addon package..."
           if [ -f ".github/scripts/gen_modules_vhdx.sh" ]; then
             sudo .github/scripts/gen_modules_vhdx.sh \
               "$PWD/modules_install/" \
               "$MODULE_VER" \
-              bzImage-x86_64-addon-simple.vhdx
+              bzImage-x86_64-addon.vhdx
           else
             echo "Creating minimal VHDX..."
-            sudo qemu-img create -f vhdx bzImage-x86_64-addon-simple.vhdx 2G
+            sudo qemu-img create -f vhdx bzImage-x86_64-addon.vhdx 2G
           fi
           
-          ls -lh bzImage-x86_64-addon-simple.vhdx 2>/dev/null || echo "VHDX creation skipped"
+          ls -lh bzImage-x86_64-addon.vhdx 2>/dev/null || echo "VHDX creation skipped"
 
       - name: Upload Kernel Image
         uses: actions/upload-artifact@v4
         with:
-          name: bzImage-x86_64-simple-rc-${{ github.event.inputs.rc_version }}
-          path: bzImage-x86_64-simple
+          name: bzImage-x86_64-rc-${{ github.event.inputs.rc_version }}
+          path: bzImage-x86_64
           retention-days: 30
 
       - name: Upload VHDX Addon
         uses: actions/upload-artifact@v4
         with:
-          name: bzImage-x86_64-addon-simple-rc-${{ github.event.inputs.rc_version }}
-          path: bzImage-x86_64-addon-simple.vhdx
+          name: bzImage-x86_64-addon-rc-${{ github.event.inputs.rc_version }}
+          path: bzImage-x86_64-addon.vhdx
           retention-days: 30
           if-no-files-found: ignore
 
@@ -126,7 +126,7 @@ jobs:
           RC_VERSION="${{ github.event.inputs.rc_version }}"
           
           cat > build-info.txt << EOF
-          Build Information (Simple/Standard Config)
+          Build Information 
           ===========================================
           Kernel Version: $RC_VERSION
           Config: Microsoft WSL2 official config
@@ -145,6 +145,6 @@ jobs:
       - name: Upload Build Info
         uses: actions/upload-artifact@v4
         with:
-          name: build-info-simple-rc-${{ github.event.inputs.rc_version }}
+          name: build-info-rc-${{ github.event.inputs.rc_version }}
           path: build-info.txt
           retention-days: 30
