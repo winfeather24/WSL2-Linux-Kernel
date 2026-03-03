@@ -85,10 +85,10 @@ jobs:
           echo "Config: config-wsl (Microsoft based)"
           echo ""
           
-          make LLVM=22 LLVM_IAS=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl olddefconfig
+          make CC=clang-22 HOSTCC=clang-22 LD=ld.lld-22 LLVM=1 LLVM_IAS=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl olddefconfig
           scripts/config --file arch/x86/configs/config-wsl --enable LTO_CLANG --enable LTO_CLANG_FULL --disable DEBUG_INFO --disable DEBUG_KERNEL
-          make LLVM=22 LLVM_IAS=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl olddefconfig
-          make LLVM=22 LLVM_IAS=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl -j$(nproc)
+          make CC=clang-22 HOSTCC=clang-22 LD=ld.lld-22 LLVM=1 LLVM_IAS=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl olddefconfig
+          make CC=clang-22 HOSTCC=clang-22 LD=ld.lld-22 LLVM=1 LLVM_IAS=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl -j$(nproc)
           
           echo ""
           echo "Build completed: $(date)"
