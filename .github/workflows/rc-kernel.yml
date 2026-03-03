@@ -37,21 +37,9 @@ jobs:
       
       - name: Install LLVM/Clang 22
         run: |
-          sudo apt-get update
-          sudo apt-get install -y wget gnupg lsb-release
-
-          # 导入 LLVM 官方 GPG key
-          wget https://apt.llvm.org/llvm-snapshot.gpg.key
-          gpg --dearmor llvm-snapshot.gpg.key
-          sudo mv llvm-snapshot.gpg.key.gpg /usr/share/keyrings/llvm.gpg
-
-          # 添加仓库
-          echo "deb [signed-by=/usr/share/keyrings/llvm.gpg] https://apt.llvm.org/noble/ llvm-toolchain-noble-22 main" | \
-          sudo tee /etc/apt/sources.list.d/llvm.list
-
-          sudo apt-get update
-
-          sudo apt-get install -y clang-22 lld-22 llvm-22
+          wget https://apt.llvm.org/llvm.sh
+          chmod +x llvm.sh
+          sudo ./llvm.sh 22
 
       - name: Clone Microsoft WSL2 Kernel configs
         run: |
@@ -84,8 +72,11 @@ jobs:
           echo "Start time: $(date)"
           echo "Config: config-wsl (Microsoft based)"
           echo ""
-          # rm -f /usr/bin/ld.lld
           sudo ln -s /usr/bin/ld.lld-22 /usr/bin/ld.lld
+          sudo ln -s /usr/bin/llvm-ar-22 /usr/bin/llvm-ar
+          sudo ln -s /usr/bin/llvm-nm-22 /usr/bin/llvm-nm
+          sudo ln -s /usr/bin/llvm-objcopy-22 /usr/bin/llvm-objcopy
+          sudo ln -s /usr/bin/llvm-strip-22 /usr/bin/llvm-strip
           make CC=clang-22 HOSTCC=clang-22 LD=ld.lld-22 LLVM=1 LLVM_IAS=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl olddefconfig
           scripts/config --file arch/x86/configs/config-wsl --enable LTO_CLANG --enable LTO_CLANG_FULL --disable DEBUG_INFO --disable DEBUG_KERNEL
           make CC=clang-22 HOSTCC=clang-22 LD=ld.lld-22 LLVM=1 LLVM_IAS=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl olddefconfig
