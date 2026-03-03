@@ -41,11 +41,13 @@ jobs:
           sudo apt-get install -y wget gnupg lsb-release
 
           # 导入 LLVM 官方 GPG key
-          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /usr/share/keyrings/llvm.gpg > /dev/null
+          wget https://apt.llvm.org/llvm-snapshot.gpg.key
+          gpg --dearmor llvm-snapshot.gpg.key
+          sudo mv llvm-snapshot.gpg.key.gpg /usr/share/keyrings/llvm.gpg
 
-          # 添加 apt 源（ubuntu 24.04 = noble）
-          echo "deb [signed-by=/usr/share/keyrings/llvm.gpg] http://apt.llvm.org/noble/ llvm-toolchain-noble-22 main" | \
-            sudo tee /etc/apt/sources.list.d/llvm.list
+          # 添加仓库
+          echo "deb [signed-by=/usr/share/keyrings/llvm.gpg] https://apt.llvm.org/noble/ llvm-toolchain-noble-22 main" | \
+          sudo tee /etc/apt/sources.list.d/llvm.list
 
           sudo apt-get update
 
