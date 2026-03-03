@@ -84,7 +84,8 @@ jobs:
           echo "Start time: $(date)"
           echo "Config: config-wsl (Microsoft based)"
           echo ""
-          
+          # rm -f /usr/bin/ld.lld
+          sudo ln -s /usr/bin/ld.lld-22 /usr/bin/ld.lld
           make CC=clang-22 HOSTCC=clang-22 LD=ld.lld-22 LLVM=1 LLVM_IAS=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl olddefconfig
           scripts/config --file arch/x86/configs/config-wsl --enable LTO_CLANG --enable LTO_CLANG_FULL --disable DEBUG_INFO --disable DEBUG_KERNEL
           make CC=clang-22 HOSTCC=clang-22 LD=ld.lld-22 LLVM=1 LLVM_IAS=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl olddefconfig
