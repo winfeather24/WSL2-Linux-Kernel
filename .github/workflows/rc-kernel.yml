@@ -34,6 +34,22 @@ jobs:
             qemu-utils \
             git \
             curl
+      
+      - name: Install LLVM/Clang 22
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget gnupg lsb-release
+
+          # 导入 LLVM 官方 GPG key
+          wget -qO- https://apt.llvm.org/llvm-snapshot.gpg.key | sudo tee /usr/share/keyrings/llvm.gpg > /dev/null
+
+          # 添加 apt 源（ubuntu 24.04 = noble）
+          echo "deb [signed-by=/usr/share/keyrings/llvm.gpg] http://apt.llvm.org/noble/ llvm-toolchain-noble-22 main" | \
+            sudo tee /etc/apt/sources.list.d/llvm.list
+
+          sudo apt-get update
+
+          sudo apt-get install -y clang-22 lld-22 llvm-22
 
       - name: Clone Microsoft WSL2 Kernel configs
         run: |
@@ -67,8 +83,10 @@ jobs:
           echo "Config: config-wsl (Microsoft based)"
           echo ""
           
-          make CC=gcc-14 HOSTCC=gcc-14 LD=$(gcc-14 -print-prog-name=ld) KCONFIG_CONFIG=arch/x86/configs/config-wsl olddefconfig
-          make CC=gcc-14 HOSTCC=gcc-14 LD=$(gcc-14 -print-prog-name=ld) CONFIG_CC_OPTIMIZE_FOR_PERFORMANCE=y CONFIG_LTO=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl -j$(nproc)
+          make CC=clang-14 HOSTCC=clang-14 LLVM=1 LLVM_IAS=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl olddefconfig
+          scripts/config --file arch/x86/configs/config-wsl --enable LTO_CLANG --enable LTO_CLANG_FULL --disable DEBUG_INFO --disable DEBUG_KERNEL
+          make CC=clang-14 HOSTCC=clang-14 LLVM=1 LLVM_IAS=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl olddefconfig
+          make CC=clang-14 HOSTCC=clang-14 LLVM=1 LLVM_IAS=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl -j$(nproc)
           
           echo ""
           echo "Build completed: $(date)"
