@@ -35,7 +35,7 @@ jobs:
             git \
             curl
       
-      - name: Install LLVM/Clang 22
+      - name: Install LLVM/Clang 23
         run: |
           sudo apt-get update
           sudo apt-get install -y wget gnupg lsb-release
@@ -51,7 +51,7 @@ jobs:
 
           sudo apt-get update
 
-          sudo apt-get install -y clang-22 lld-22 llvm-22
+          sudo apt-get install -y clang-23 lld-23 llvm-23
 
       - name: Clone Microsoft WSL2 Kernel configs
         run: |
@@ -82,16 +82,18 @@ jobs:
           echo "Config: config-wsl (Microsoft based)"
           echo ""
           # rm -f /usr/bin/ld.lld
-          sudo ln -s /usr/bin/ld.lld-22 /usr/bin/ld.lld
-          sudo ln -s /usr/bin/llvm-ar-22 /usr/bin/llvm-ar
-          sudo ln -s /usr/bin/llvm-nm-22 /usr/bin/llvm-nm
-          sudo ln -s /usr/bin/llvm-objcopy-22 /usr/bin/llvm-objcopy
-          sudo ln -s /usr/bin/llvm-strip-22 /usr/bin/llvm-strip
-          make CC=clang-22 HOSTCC=clang-22 LD=ld.lld-22 LLVM=1 LLVM_IAS=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl olddefconfig
-          scripts/config --file arch/x86/configs/config-wsl --enable LTO_CLANG --enable LTO_CLANG_THIN --disable DEBUG_INFO --disable DEBUG_KERNEL
-          make CC=clang-22 HOSTCC=clang-22 LD=ld.lld-22 LLVM=1 LLVM_IAS=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl olddefconfig
-          make CC=clang-22 HOSTCC=clang-22 LD=ld.lld-22 LLVM=1 LLVM_IAS=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl -j$(nproc)
-          make CC=clang-22 HOSTCC=clang-22 LD=ld.lld-22 LLVM=1 LLVM_IAS=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl -j$(nproc) modules
+          sudo ln -s /usr/bin/ld.lld-23 /usr/bin/ld.lld
+          sudo ln -s /usr/bin/llvm-ar-23 /usr/bin/llvm-ar
+          sudo ln -s /usr/bin/llvm-nm-23 /usr/bin/llvm-nm
+          sudo ln -s /usr/bin/llvm-objcopy-23 /usr/bin/llvm-objcopy
+          sudo ln -s /usr/bin/llvm-strip-23 /usr/bin/llvm-strip
+          
+          cp -f linux/arch/x86/configs/config-wsl .config
+
+          scripts/config --file .config --enable LTO_CLANG --enable LTO_CLANG_THIN --disable DEBUG_INFO --disable DEBUG_KERNEL
+          make olddefconfig
+          
+          make CC=clang-23 HOSTCC=clang-23 LD=ld.lld-23 LLVM=1 LLVM_IAS=1 -j$(nproc)
           
           echo ""
           echo "Build completed: $(date)"
