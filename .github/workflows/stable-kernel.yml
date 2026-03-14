@@ -91,7 +91,7 @@ jobs:
           scripts/config --file arch/x86/configs/config-wsl --enable LTO_CLANG --enable LTO_CLANG_THIN --disable DEBUG_INFO --disable DEBUG_KERNEL
           make CC=clang-22 HOSTCC=clang-22 LD=ld.lld-22 LLVM=1 LLVM_IAS=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl olddefconfig
           make CC=clang-22 HOSTCC=clang-22 LD=ld.lld-22 LLVM=1 LLVM_IAS=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl -j$(nproc)
-          make CC=clang-22 HOSTCC=clang-22 LD=ld.lld-22 LLVM=1 -j$(nproc) modules
+          make CC=clang-22 HOSTCC=clang-22 LD=ld.lld-22 LLVM=1 LLVM_IAS=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl -j$(nproc) modules
           
           echo ""
           echo "Build completed: $(date)"
