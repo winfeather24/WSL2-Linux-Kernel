@@ -69,7 +69,7 @@ jobs:
           
           # 复制微软官方配置
           echo "Copying Microsoft WSL2 config..."
-          cp wsl2-microsoft/config-wsl linux/arch/x86/configs/config-wsl
+          cp wsl2-microsoft/config-wsl-2 linux/arch/x86/configs/config-wsl
           echo "Copied Microsoft config"
 
       - name: Build Kernel
