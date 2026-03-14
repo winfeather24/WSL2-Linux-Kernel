@@ -75,7 +75,7 @@ jobs:
       - name: Build Kernel
         run: |
           cd linux
-          vERSION="${{ github.event.inputs.version }}"
+          VERSION="${{ github.event.inputs.version }}"
           
           echo "=== Building Kernel ==="
           echo "Start time: $(date)"
@@ -104,16 +104,16 @@ jobs:
         run: |
           cd linux
           VERSION="${{ github.event.inputs.version }}"
+          mkdir -p ../modules_install
           make modules_install INSTALL_MOD_PATH=../modules_install
           
           KERNEL_VER=$(ls ../modules_install/lib/modules/ | head -1)
-          mv ../modules_install/lib/modules/$KERNEL_VER ../modules_install/lib/modules/$VERSION-WSL2+
-          echo "Modules installed: $VERSION-WSL2+"
+          echo "Modules installed: $KERNEL_VER"
 
       - name: Generate VHDX Addon Package
         run: |
           VERSION="${{ github.event.inputs.version }}"
-          MODULE_VER="$VERSION-WSL2+"
+          MODULE_VER="$KERNEL_VER"
           
           echo "Generating VHDX addon package..."
           if [ -f ".github/scripts/gen_modules_vhdx.sh" ]; then
