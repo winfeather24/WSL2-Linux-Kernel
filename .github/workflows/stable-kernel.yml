@@ -1,0 +1,172 @@
+name: Stable Kernel CI Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g., 6,19.8)'
+        required: true
+        default: '6.19.8'
+
+jobs:
+  build-x86:
+    name: Build x86_64 WSL2 Stable Kernel
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            libncurses-dev \
+            bison \
+            flex \
+            libssl-dev \
+            libelf-dev \
+            bc \
+            kmod \
+            cpio \
+            xz-utils \
+            rsync \
+            qemu-utils \
+            git \
+            curl
+      
+      - name: Install LLVM/Clang 22
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget gnupg lsb-release
+
+          # 导入 LLVM 官方 GPG key
+          wget https://apt.llvm.org/llvm-snapshot.gpg.key
+          gpg --dearmor llvm-snapshot.gpg.key
+          sudo mv llvm-snapshot.gpg.key.gpg /usr/share/keyrings/llvm.gpg
+
+          # 添加仓库
+          echo "deb [signed-by=/usr/share/keyrings/llvm.gpg] https://apt.llvm.org/noble/ llvm-toolchain-noble-22 main" | \
+          sudo tee /etc/apt/sources.list.d/llvm.list
+
+          sudo apt-get update
+
+          sudo apt-get install -y clang-22 lld-22 llvm-22
+
+      - name: Clone Microsoft WSL2 Kernel configs
+        run: |
+          echo "Cloning Microsoft WSL2 kernel for WSL2 configs..."
+          git clone https://github.com/winfeather24/WSL2-Linux-Kernel.git --depth 1 --branch 6.6 wsl2-microsoft
+          echo "Available config files:"
+          ls -la wsl2-microsoft/config-wsl* 2>/dev/null || echo "x86 config-wsl not found"
+
+      - name: Clone Linux Stable Kernel
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          echo "Building Linux Mainline Stable Kernel: $VERSION"
+          
+          git clone https://github.com/gregkh/linux --depth 1 --branch v$VERSION linux
+          
+          # 复制微软官方配置
+          echo "Copying Microsoft WSL2 config..."
+          cp wsl2-microsoft/config-wsl linux/arch/x86/configs/config-wsl
+          echo "Copied Microsoft config"
+
+      - name: Build Kernel
+        run: |
+          cd linux
+          vERSION="${{ github.event.inputs.version }}"
+          
+          echo "=== Building Kernel ==="
+          echo "Start time: $(date)"
+          echo "Config: config-wsl (Microsoft based)"
+          echo ""
+          # rm -f /usr/bin/ld.lld
+          sudo ln -s /usr/bin/ld.lld-22 /usr/bin/ld.lld
+          sudo ln -s /usr/bin/llvm-ar-22 /usr/bin/llvm-ar
+          sudo ln -s /usr/bin/llvm-nm-22 /usr/bin/llvm-nm
+          sudo ln -s /usr/bin/llvm-objcopy-22 /usr/bin/llvm-objcopy
+          sudo ln -s /usr/bin/llvm-strip-22 /usr/bin/llvm-strip
+          make CC=clang-22 HOSTCC=clang-22 LD=ld.lld-22 LLVM=1 LLVM_IAS=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl olddefconfig
+          scripts/config --file arch/x86/configs/config-wsl --enable LTO_CLANG --enable LTO_CLANG_FULL --disable DEBUG_INFO --disable DEBUG_KERNEL
+          make CC=clang-22 HOSTCC=clang-22 LD=ld.lld-22 LLVM=1 LLVM_IAS=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl olddefconfig
+          make CC=clang-22 HOSTCC=clang-22 LD=ld.lld-22 LLVM=1 LLVM_IAS=1 KCONFIG_CONFIG=arch/x86/configs/config-wsl -j$(nproc)
+          
+          echo ""
+          echo "Build completed: $(date)"
+          cp arch/x86/boot/bzImage ../bzImage-x86_64
+          
+          echo ""
+          echo "=== Kernel Size ==="
+          ls -lh ../bzImage-x86_64
+
+      - name: Generate Kernel Modules
+        run: |
+          cd linux
+          VERSION="${{ github.event.inputs.version }}"
+          make modules_install INSTALL_MOD_PATH=../modules_install
+          
+          KERNEL_VER=$(ls ../modules_install/lib/modules/ | head -1)
+          mv ../modules_install/lib/modules/$KERNEL_VER ../modules_install/lib/modules/$VERSION-WSL2+
+          echo "Modules installed: $VERSION-WSL2+"
+
+      - name: Generate VHDX Addon Package
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          MODULE_VER="$VERSION-WSL2+"
+          
+          echo "Generating VHDX addon package..."
+          if [ -f ".github/scripts/gen_modules_vhdx.sh" ]; then
+            sudo .github/scripts/gen_modules_vhdx.sh \
+              "$PWD/modules_install/" \
+              "$MODULE_VER" \
+              bzImage-x86_64-addon.vhdx
+          else
+            echo "Creating minimal VHDX..."
+            sudo qemu-img create -f vhdx bzImage-x86_64-addon.vhdx 2G
+          fi
+          
+          ls -lh bzImage-x86_64-addon.vhdx 2>/dev/null || echo "VHDX creation skipped"
+
+      - name: Upload Kernel Image
+        uses: actions/upload-artifact@v4
+        with:
+          name: bzImage-x86_64-stable-${{ github.event.inputs.version }}
+          path: bzImage-x86_64
+          retention-days: 30
+
+      - name: Upload VHDX Addon
+        uses: actions/upload-artifact@v4
+        with:
+          name: bzImage-x86_64-addon-stable-${{ github.event.inputs.version }}
+          path: bzImage-x86_64-addon.vhdx
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Upload Build Info
+        run: |
+          VERSION="${{ github.event.inputs.version }}"
+          
+          cat > build-info.txt << EOF
+          Build Information 
+          ===========================================
+          Kernel Version: $VERSION
+          Config: Microsoft WSL2 official config
+          Build Time: $(date)
+          
+          Features:
+          - All WSL2 drivers (DXGKRNL, Hyper-V, etc.)
+          - Standard kernel configuration
+          - No custom optimizations
+          
+          This is the standard build using Microsoft's official WSL2 config.
+          EOF
+          
+          cat build-info.txt
+
+      - name: Upload Build Info
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-info-stable-${{ github.event.inputs.version }}
+          path: build-info.txt
+          retention-days: 30
